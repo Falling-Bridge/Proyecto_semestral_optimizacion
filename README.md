@@ -14,7 +14,7 @@ _Valentina Serón_<br>
 _x_
 
 _Ignacio Soto_<br>
-_x_
+_2023447412_
 # Sobre el entregable
 Este proyecto escrito en Python implementa un modelo de optimización para el problema de programación de aterrizajes de aeronaves (Aircraft Scheduling Problem o ASP), considerando una única pista en el aeropuerto Carriel Sur.
 
