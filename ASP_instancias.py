@@ -127,7 +127,9 @@ SIZES = {"small": [10, 15, 20, 30],     # validación: Gurobi == CPLEX, se alcan
 MIXES_USED = ["biobio_comercial", "biobio_prom2026", "balanced", "heavy_mix"]
 PROFILES_USED = ["literature", "dap11_hybrid"]
 REPLICAS = 5                            # semillas por (tamaño, mezcla)
-SOLVER_SETTINGS = dict(time_limit=600, mip_gap=1e-4, threads=1)  # configuración idéntica para ambos solvers
+SOLVER_SETTINGS = dict(mip_gap=1e-4, threads=1)  # configuración idéntica para ambos solvers
+# NOTA: el límite de tiempo se define por modo experimental en experimentos.py
+
 # NOTA: n cuenta solo ATERRIZAJES. Los tamanos >= 100 son pruebas de estres computacional:
 # se comprimen en un horizonte breve, no son ventanas operativas realistas en Carriel Sur.
 

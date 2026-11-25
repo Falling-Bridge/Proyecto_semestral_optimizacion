@@ -24,11 +24,11 @@ El mismo modelo matemático fue implementado utilizando dos solvers: Gurobi y CP
 
 ## Archivos del proyecto
 
-- **ASP_instancias.py:** Generación de instancias sintéticas y lectura de instancias de OR-Library.
+- **ASP_instancias.py:** Generación de instancias sintéticas (tamaños, mezclas de aeronaves y perfiles de separación), descarga y lectura de instancias de OR-Library, y definición del diseño experimental.
 - **gurobi.py:** Implementación del modelo matemático utilizando Gurobi.
 - **asp_cplex.py:** Implementación del modelo matemático utilizando CPLEX.
 - **validacion.py:** Verificación del cumplimiento de las restricciones en las soluciones obtenidas.
-- **experimentos.py:** Ejecución automática de experimentos utilizando ambos solvers.
+- **experimentos.py:** Ejecución automática de la campaña experimental completa con uno o ambos solvers.
 
 
 ## Reglas para Ejecutar el Código
@@ -41,9 +41,11 @@ Para instalar las bibliotecas necesarias, ejecute en la terminal:
 pip install -r requirements.txt
 ```
 
+Gurobi y CPLEX requieren además una licencia válida instalada en el equipo. La licencia académica de Gurobi se activa con `grbgetkey`; CPLEX funciona con la edición Community incluida en el paquete `docplex`/`cplex` (con límite de tamaño de modelo).
+
 ### 2. Ejecución del modelo en Gurobi
 
-Para ejecutar el modelo utilizando Gurobi:
+Para ejecutar el modelo utilizando Gurobi con una instancia sintética:
 
 ```bash
 python gurobi.py
@@ -85,33 +87,96 @@ O utilizando CPLEX:
 python asp_cplex.py --archivo instances/orlib/airland1.txt
 ```
 
-### 5. Experimentación (Temporal)
+Para descargar automáticamente las 13 instancias de OR-Library (`airland1.txt` a `airland13.txt`) y generar el diseño experimental en formato de texto, ejecute:
 
-Actualmente, la experimentación cuenta con una configuración temporal que permite verificar el funcionamiento de ambos modelos.
+```bash
+python ASP_instancias.py
+```
 
-Para ejecutar los experimentos utilizando Gurobi:
+### 5. Experimentación: modo `prueba` y modo `definitivo`
+
+El script `experimentos.py` ejecuta la campaña experimental de forma automática. Usa exactamente las mismas instancias para Gurobi y CPLEX, de modo que los resultados sean comparables.
+
+#### 5.1 Modos disponibles
+
+| Modo | Instancias | Límite por instancia | Uso |
+| --- | --- | --- | --- |
+| `prueba` | 3 tamaños (10, 15, 20) × mezcla `balanced` × perfil `literature` × 3 réplicas | 30 s | Verificar que toda la tubería funciona |
+| `definitivo` | 9 tamaños (10 a 250) × 4 mezclas × 2 perfiles × 5 réplicas = 360 instancias | 3600 s | Campaña final del informe |
+
+Ambos modos incluyen además la instancia de referencia `airland1` de OR-Library (si está disponible o se puede descargar).
+
+#### 5.2 Ejecución del modo definitivo
+
+Con Gurobi:
+
+```bash
+python experimentos.py --modo definitivo --solver gurobi
+```
+
+Con CPLEX:
+
+```bash
+python experimentos.py --modo definitivo --solver cplex
+```
+
+Con ambos solvers de forma secuencial (Gurobi y luego CPLEX):
+
+```bash
+python experimentos.py --modo definitivo --solver ambos
+```
+
+#### 5.3 Ejecución del modo de prueba
 
 ```bash
 python experimentos.py --modo prueba --solver gurobi
-```
-
-Para ejecutar los experimentos utilizando CPLEX:
-
-```bash
 python experimentos.py --modo prueba --solver cplex
-```
-
-Si desea ejecutar los experimentos con ambos solvers:
-
-```bash
 python experimentos.py --modo prueba --solver ambos
 ```
 
-Por el momento, el programa cuenta con dos modos de ejecución:
+#### 5.4 Opciones de línea de comandos
 
-- **prueba:** Utiliza instancias pequeñas y un tiempo límite de 30 segundos por instancia.
-- **definitivo:** Utiliza el conjunto completo de instancias sintéticas del diseño experimental y un tiempo límite de 3600 segundos por instancia.
+| Opción | Descripción |
+| --- | --- |
+| `--modo {prueba,definitivo}` | Modo experimental (por defecto `prueba`). |
+| `--solver {gurobi,cplex,ambos}` | Motor de optimización (por defecto `gurobi`). |
+| `--limite SEGUNDOS` | Sobreescribe el límite de tiempo por instancia del modo. |
+| `--replicas N` | Sobreescribe el número de réplicas por combinación tamaño–mezcla. |
+| `--tamanos 10,15,20` | Ejecuta solo un subconjunto de los tamaños del modo. |
+| `--reiniciar` | Archiva el CSV existente (con marca de tiempo) y empieza de cero. |
 
+#### 5.5 Reanudación y ejecución por tramos
 
-Los resultados se guardarán automáticamente en formato CSV dentro de la carpeta resultados. Ambos solvers utilizan las mismas instancias para que los resultados puedan ser comparados bajo las mismas condiciones.
+La campaña definitiva puede durar muchas horas, por lo que la ejecución es **reanudable**: cada resultado se escribe inmediatamente en el CSV y, al volver a lanzar el mismo comando, las instancias ya registradas se omiten automáticamente.
 
+Para repartir el trabajo en tramos (por ejemplo, primero los tamaños pequeños y luego los grandes):
+
+```bash
+python experimentos.py --modo definitivo --solver gurobi --tamanos 10,15,20,30
+python experimentos.py --modo definitivo --solver gurobi --tamanos 50,100,150,200,250
+```
+
+Si desea repetir una campaña desde cero, use `--reiniciar` (el CSV anterior se conserva como `*_bak_AAAAMMDD_HHMMSS.csv`).
+
+#### 5.6 Resultados generados
+
+Los archivos se guardan en la carpeta `resultados/`:
+
+- `resultados/<solver>_<modo>.csv`: una fila por instancia resuelta, con delimitador `;` y codificación UTF-8 con BOM (se abre directamente en Excel).
+- `resultados/<solver>_<modo>_meta.json`: configuración usada en la última ejecución (modo, límite de tiempo, réplicas, tamaños, mezclas, perfiles, tolerancias y versiones del solver y de Python).
+
+Columnas del CSV: `instancia`, `solver`, `origen`, `grupo`, `aeronaves`, `mezcla`, `perfil`, `replica`, `semilla`, `limite_tiempo`, `variables`, `restricciones`, `estado`, `estado_texto`, `objetivo`, `tiempo`, `gap`, `nodos`, `factible`, `adelanto_total`, `retraso_total`, `errores`.
+
+Un error aislado durante la resolución (por ejemplo, falta de memoria) queda registrado como fila con `estado = ERROR` y no detiene la campaña. Si fallan tres instancias consecutivas, la ejecución se detiene para evitar registrar errores en serie; al corregir el problema basta con volver a lanzar el mismo comando. Las filas con `estado = ERROR` se reintentan automáticamente en la siguiente ejecución; por eso, al analizar los resultados conviene filtrar `estado != ERROR` (puede quedar la fila histórica del error junto a la reintentada con éxito).
+
+#### 5.7 Advertencias sobre el modo definitivo
+
+- Los tamaños 150, 200 y 250 son **pruebas de estrés computacional**: comprimen muchas aeronaves en un horizonte breve y no representan una operación realista de Carriel Sur. En `n = 250` el modelo tiene 62.250 variables binarias, por lo que la construcción y resolución pueden consumir varios GB de memoria.
+- Con un límite de 3600 s por instancia, el peor caso de la campaña completa es cercano a 360 horas por solver. Se recomienda ejecutar por tramos con `--tamanos` y revisar periódicamente el CSV.
+- Para conservar el registro de la terminal durante una ejecución larga, redirija la salida a un archivo (PowerShell):
+
+  ```powershell
+  python experimentos.py --modo definitivo --solver ambos *> resultados\log_definitivo.txt
+  ```
+
+- Gurobi y CPLEX usan la misma configuración de solver (`SOLVER_SETTINGS` en `ASP_instancias.py`): 1 hilo y MIPGap de `1e-4`. El límite de tiempo se fija por modo (o con `--limite`).

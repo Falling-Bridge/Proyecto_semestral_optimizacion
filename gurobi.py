@@ -2,8 +2,33 @@
 import argparse
 import gurobipy as gp
 from gurobipy import GRB
-from ASP_instancias import generate_instance, parse_orlib
+from ASP_instancias import (
+    generate_instance,
+    parse_orlib,
+    SOLVER_SETTINGS
+)
 from validacion import validar_solucion
+
+# Descripcion legible de los codigos de estado de Gurobi
+ESTADOS_GUROBI = {
+    1: "LOADED",
+    2: "OPTIMAL",
+    3: "INFEASIBLE",
+    4: "INF_OR_UNBD",
+    5: "UNBOUNDED",
+    6: "CUTOFF",
+    7: "ITERATION_LIMIT",
+    8: "NODE_LIMIT",
+    9: "TIME_LIMIT",
+    10: "SOLUTION_LIMIT",
+    11: "INTERRUPTED",
+    12: "NUMERIC",
+    13: "SUBOPTIMAL",
+    14: "INPROGRESS",
+    15: "USER_OBJ_LIMIT",
+    16: "WORK_LIMIT",
+    17: "MEM_LIMIT",
+}
 
 
 def resolver_gurobi(datos, limite_tiempo=3600, mostrar=True):
@@ -80,11 +105,11 @@ def resolver_gurobi(datos, limite_tiempo=3600, mostrar=True):
 
     modelo.update()
 
-    # Configuracion del solver
+    # Configuracion del solver (identica para ambos solvers)
     modelo.Params.OutputFlag = int(mostrar)
     modelo.Params.TimeLimit = limite_tiempo
-    modelo.Params.Threads = 1
-    modelo.Params.MIPGap = 1e-4
+    modelo.Params.Threads = SOLVER_SETTINGS["threads"]
+    modelo.Params.MIPGap = SOLVER_SETTINGS["mip_gap"]
     modelo.Params.IntFeasTol = 1e-9
 
     # Resolucion del modelo
@@ -97,6 +122,9 @@ def resolver_gurobi(datos, limite_tiempo=3600, mostrar=True):
         "variables": modelo.NumVars,
         "restricciones": modelo.NumConstrs,
         "estado": modelo.Status,
+        "estado_texto": ESTADOS_GUROBI.get(
+            modelo.Status, str(modelo.Status)
+        ),
         "tiempo": modelo.Runtime,
         "nodos": modelo.NodeCount if modelo.IsMIP else 0,
         "objetivo": None,
@@ -153,6 +181,7 @@ def mostrar_resultados(resultado):
     print("Cantidad de variables:", resultado["variables"])
     print("Cantidad de restricciones:", resultado["restricciones"])
     print("Estado del solver:", resultado["estado"])
+    print("Descripcion del estado:", resultado["estado_texto"])
     print(f"Tiempo de computo: {resultado['tiempo']:.4f} segundos")
 
     if resultado["objetivo"] is not None:

@@ -1,7 +1,11 @@
 
 import argparse
 from docplex.mp.model import Model
-from ASP_instancias import generate_instance, parse_orlib
+from ASP_instancias import (
+    generate_instance,
+    parse_orlib,
+    SOLVER_SETTINGS
+)
 from validacion import validar_solucion
 
 
@@ -75,10 +79,10 @@ def resolver_cplex(datos, limite_tiempo=3600, mostrar=True):
         names="separacion"
     )
 
-    # Configuracion del solver
+    # Configuracion del solver (identica para ambos solvers)
     modelo.parameters.timelimit = limite_tiempo
-    modelo.parameters.threads = 1
-    modelo.parameters.mip.tolerances.mipgap = 1e-4
+    modelo.parameters.threads = SOLVER_SETTINGS["threads"]
+    modelo.parameters.mip.tolerances.mipgap = SOLVER_SETTINGS["mip_gap"]
 
     # Tolerancia de integralidad de las variables discretas
     modelo.parameters.mip.tolerances.integrality = 1e-9
