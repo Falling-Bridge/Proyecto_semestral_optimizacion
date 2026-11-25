@@ -8,10 +8,10 @@ _Lucas Morales_<br>
 _2023441490_
 
 _Diego Alday_<br>
-_x_
+_2020901597_
 
 _Valentina Serón_<br>
-_x_
+_2020901589_
 
 _Ignacio Soto_<br>
 _2023447412_
